@@ -12,7 +12,6 @@
   "action.quit": "종료",
   "menubar.placeholder": "--",
   "status.apiFailed": "사용량을 불러오지 못했습니다",
-  "status.noData": "사용량을 불러오는 중입니다",
   "settings.syncInterval": "갱신 주기",
   "sync.60": "1분",
   "sync.300": "5분",
@@ -21,5 +20,7 @@
   "sync.3600": "1시간",
   "menubar.session": "5h",
   "menubar.weekly": "7d",
-  "menubar.separator": " · "
+  "menubar.separator": " · ",
+  "status.loading": "사용량을 불러오는 중입니다",
+  "status.retryIn": "{time} 후 재시도"
 }

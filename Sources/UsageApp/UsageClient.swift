@@ -4,7 +4,7 @@ import UsageCore
 enum UsageClientError: Error {
     case noToken
     case unauthorized
-    case rateLimited
+    case rateLimited(retryAfter: TimeInterval?)
     case http(Int)
     case malformedResponse
 }
@@ -46,7 +46,9 @@ struct UsageClient {
             tokenStore.invalidate()
             throw UsageClientError.unauthorized
         case 429:
-            throw UsageClientError.rateLimited
+            // 서버가 대기 시간을 알려주면 추측보다 그 값이 정확하다.
+            let retryAfter = http.value(forHTTPHeaderField: "Retry-After").flatMap(TimeInterval.init)
+            throw UsageClientError.rateLimited(retryAfter: retryAfter)
         default:
             throw UsageClientError.http(http.statusCode)
         }

@@ -8,6 +8,18 @@ struct PopoverView: View {
     @State private var now = Date()
     private let tick = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
+    /// `now`가 1초마다 바뀌므로 대기가 끝나면 버튼이 저절로 다시 켜진다.
+    private var canRefresh: Bool { _ = now; return state.canRefresh }
+
+    private var icon: String {
+        switch state.loadState {
+        case .needsAuth: return "person.crop.circle.badge.exclamationmark"
+        case .rateLimited: return "hourglass"
+        case .failed: return "exclamationmark.triangle"
+        case .idle, .ok: return "arrow.clockwise"
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.cardSpacing) {
             header
@@ -40,9 +52,10 @@ struct PopoverView: View {
             } label: {
                 Image(systemName: "arrow.clockwise")
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Theme.label)
+                    .foregroundStyle(canRefresh ? Theme.label : Theme.muted)
             }
             .buttonStyle(.plain)
+            .disabled(!canRefresh)
             .help(state.strings("action.refresh"))
         }
         .padding(.bottom, 2)
@@ -74,13 +87,19 @@ struct PopoverView: View {
 
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Image(systemName: "questionmark.circle")
+            Image(systemName: icon)
                 .font(.system(size: 18))
                 .foregroundStyle(Theme.muted)
-            Text(state.strings("status.noData"))
+            Text(state.emptyStateMessage(at: now))
                 .font(.system(size: 12))
                 .foregroundStyle(Theme.label)
                 .fixedSize(horizontal: false, vertical: true)
+            if let retry = state.retryMessage(at: now) {
+                Text(retry)
+                    .font(.system(size: 11))
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.muted)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(Theme.cardPadding)
@@ -117,6 +136,9 @@ struct PopoverView: View {
                 }
                 if let notice = state.notice {
                     Text(notice).foregroundStyle(Theme.color(for: .warning))
+                }
+                if state.reading != nil, let retry = state.retryMessage(at: now) {
+                    Text(retry).monospacedDigit()
                 }
             }
             .font(.system(size: 10))
