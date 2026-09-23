@@ -5,7 +5,8 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 NAME="ClaudeUsageMonitor"
-BUNDLE="build/${NAME}.app"
+BUILD_DIR="build.noindex"
+BUNDLE="${BUILD_DIR}/${NAME}.app"
 
 swift build -c release --product UsageApp
 

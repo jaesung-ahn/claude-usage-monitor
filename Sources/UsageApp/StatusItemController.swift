@@ -14,6 +14,9 @@ final class StatusItemController {
     private let popover = NSPopover()
     private var cancellable: AnyCancellable?
 
+    /// 팝오버가 떠 있는 동안에만 설치되는 바깥 클릭 감시.
+    private var outsideClickMonitor: Any?
+
     init(state: AppState) {
         self.state = state
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -49,11 +52,32 @@ final class StatusItemController {
     }
 
     @objc private func togglePopover() {
+        popover.isShown ? close() : show()
+    }
+
+    /// `.transient`만으로는 다른 앱을 클릭했을 때 닫히지 않는다.
+    /// 창을 갖지 않는 accessory 앱이라 바깥 클릭이 팝오버까지 전달되지 않기 때문이다.
+    /// 전역 마우스 감시를 직접 설치한다. 마우스 이벤트 감시에는 별도 권한이 필요 없다.
+    private func show() {
         guard let button = statusItem.button else { return }
-        if popover.isShown {
-            popover.performClose(nil)
-        } else {
-            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+
+        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        NSApp.activate(ignoringOtherApps: true)
+
+        outsideClickMonitor = NSEvent.addGlobalMonitorForEvents(
+            matching: [.leftMouseDown, .rightMouseDown]
+        ) { [weak self] _ in
+            Task { @MainActor in self?.close() }
+        }
+    }
+
+    private func close() {
+        popover.performClose(nil)
+
+        // 감시를 남겨두면 팝오버가 닫힌 뒤에도 모든 클릭을 계속 받는다.
+        if let monitor = outsideClickMonitor {
+            NSEvent.removeMonitor(monitor)
+            outsideClickMonitor = nil
         }
     }
 }

@@ -11,6 +11,7 @@ final class TokenStore {
 
     private var cached: String?
     private var keychainDeniedUntil: Date?
+    private var reads = 0
 
     /// Keychain은 최초 접근 시 권한 창을 띄운다. 거부당한 뒤 매 폴링마다 다시 물으면
     /// 창이 반복해서 뜨므로 쿨다운을 둔다.
@@ -23,20 +24,32 @@ final class TokenStore {
     }
 
     func accessToken(now: Date = Date()) -> String? {
-        if let cached { return cached }
+        reads += 1
+
+        if let cached {
+            Log.auth.debug("token: cache hit (read #\(self.reads, privacy: .public))")
+            return cached
+        }
 
         if let token = readFromFile() {
+            Log.auth.info("token: read from file (read #\(self.reads, privacy: .public))")
             cached = token
             return token
         }
 
-        if let deniedUntil = keychainDeniedUntil, now < deniedUntil { return nil }
+        if let deniedUntil = keychainDeniedUntil, now < deniedUntil {
+            Log.auth.info("token: keychain in cooldown")
+            return nil
+        }
 
+        Log.auth.info("token: querying keychain (read #\(self.reads, privacy: .public))")
         guard let token = readFromKeychain() else {
+            Log.auth.error("token: keychain query failed")
             keychainDeniedUntil = now.addingTimeInterval(denialCooldown)
             return nil
         }
 
+        Log.auth.info("token: read from keychain")
         cached = token
         return token
     }
