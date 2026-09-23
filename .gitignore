@@ -1,0 +1,21 @@
+# 설계 문서 (로컬 보관)
+docs/
+
+# macOS
+.DS_Store
+
+# Swift
+.build/
+.swiftpm/
+*.xcuserstate
+
+# 빌드 산출물
+build/
+*.app
+*.dmg
+
+# Node
+node_modules/
+
+# Claude Code 로컬 설정
+.claude/settings.local.json

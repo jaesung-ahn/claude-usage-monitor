@@ -1,0 +1,60 @@
+import Foundation
+import UsageCore
+
+enum UsageClientError: Error {
+    case noToken
+    case unauthorized
+    case rateLimited
+    case http(Int)
+    case malformedResponse
+}
+
+/// OAuth usage 엔드포인트 호출.
+///
+/// 응답 본문과 토큰은 로그에 남기지 않는다.
+struct UsageClient {
+    private let endpoint = URL(string: "https://api.anthropic.com/api/oauth/usage")!
+    private let session: URLSession
+    private let tokenStore: TokenStore
+
+    init(tokenStore: TokenStore, session: URLSession = .shared) {
+        self.tokenStore = tokenStore
+        self.session = session
+    }
+
+    func fetch(now: Date = Date()) async throws -> UsageReading {
+        guard let token = tokenStore.accessToken(now: now) else {
+            throw UsageClientError.noToken
+        }
+
+        var request = URLRequest(url: endpoint)
+        request.timeoutInterval = 15
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw UsageClientError.malformedResponse
+        }
+
+        switch http.statusCode {
+        case 200:
+            break
+        case 401, 403:
+            // Claude Code가 토큰을 갱신했을 수 있다. 다음 시도에서 다시 읽는다.
+            tokenStore.invalidate()
+            throw UsageClientError.unauthorized
+        case 429:
+            throw UsageClientError.rateLimited
+        default:
+            throw UsageClientError.http(http.statusCode)
+        }
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw UsageClientError.malformedResponse
+        }
+
+        return ApiSource.normalize(json: json, observedAt: now)
+    }
+}

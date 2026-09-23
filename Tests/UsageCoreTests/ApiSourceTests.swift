@@ -1,0 +1,83 @@
+import XCTest
+@testable import UsageCore
+
+final class ApiSourceTests: XCTestCase {
+    private let observedAt = Date(timeIntervalSince1970: 1_790_000_000)
+
+    func testNormalizesCapturedFixture() throws {
+        let json = try Fixtures.json("usage-response.json")
+        let reading = ApiSource.normalize(json: json, observedAt: observedAt)
+
+        XCTAssertEqual(reading.session?.percent, 55)
+        XCTAssertEqual(reading.weeklyAll?.percent, 18)
+    }
+
+    func testExtractsScopedModelPool() throws {
+        let json = try Fixtures.json("usage-response.json")
+        let reading = ApiSource.normalize(json: json, observedAt: observedAt)
+
+        XCTAssertEqual(reading.weeklyScoped.count, 1)
+        XCTAssertEqual(reading.weeklyScoped.first?.name, "Fable")
+        XCTAssertEqual(reading.weeklyScoped.first?.percent, 23)
+    }
+
+    func testParsesFractionalIsoDates() throws {
+        let json = try Fixtures.json("usage-response.json")
+        let reading = ApiSource.normalize(json: json, observedAt: observedAt)
+
+        let resetsAt = try XCTUnwrap(reading.session?.resetsAt)
+        var components = DateComponents()
+        components.year = 2026
+        components.month = 9
+        components.day = 22
+        components.hour = 11
+        components.minute = 40
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        let expected = try XCTUnwrap(calendar.date(from: components))
+
+        XCTAssertEqual(resetsAt.timeIntervalSince1970, expected.timeIntervalSince1970, accuracy: 1)
+    }
+
+    func testLimitsSupersedeTopLevelKeys() throws {
+        // 신형 요금제에서는 top-level seven_day_* 가 전부 null이다. 실측으로 확인했다.
+        let json = try Fixtures.json("usage-response.json")
+        XCTAssertTrue(json["seven_day_sonnet"] is NSNull)
+
+        let reading = ApiSource.normalize(json: json, observedAt: observedAt)
+        XCTAssertEqual(reading.weeklyScoped.map(\.name), ["Fable"])
+    }
+
+    func testFallsBackToTopLevelWhenLimitsAbsent() throws {
+        let json = try Fixtures.json("usage-response-legacy.json")
+        let reading = ApiSource.normalize(json: json, observedAt: observedAt)
+
+        XCTAssertEqual(reading.session?.percent, 55)
+        XCTAssertEqual(reading.weeklyAll?.percent, 18)
+        XCTAssertEqual(reading.weeklyScoped.map(\.name), ["sonnet"])
+    }
+
+    func testUnknownKindIsIgnored() {
+        let json: [String: Any] = [
+            "limits": [
+                ["kind": "session", "percent": 40, "resets_at": "2026-09-22T11:40:00.199652+00:00"],
+                ["kind": "some_future_kind", "percent": 99],
+            ]
+        ]
+        let reading = ApiSource.normalize(json: json, observedAt: observedAt)
+
+        XCTAssertEqual(reading.session?.percent, 40)
+        XCTAssertNil(reading.weeklyAll)
+        XCTAssertTrue(reading.weeklyScoped.isEmpty)
+    }
+
+    func testScopedPoolWithoutNameIsSkipped() {
+        let json: [String: Any] = [
+            "limits": [
+                ["kind": "weekly_scoped", "percent": 23, "scope": NSNull()],
+            ]
+        ]
+        let reading = ApiSource.normalize(json: json, observedAt: observedAt)
+        XCTAssertTrue(reading.weeklyScoped.isEmpty, "무엇의 한도인지 알 수 없으면 표시하지 않는다")
+    }
+}
