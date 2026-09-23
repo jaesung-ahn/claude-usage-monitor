@@ -1,0 +1,16 @@
+{
+  "_note": "limits 배열이 없는 구형 표현. 폴백 경로 검증용 합성 픽스처이며 실측이 아니다.",
+  "five_hour": {
+    "utilization": 55.0,
+    "resets_at": "2026-09-22T11:40:00.199652+00:00"
+  },
+  "seven_day": {
+    "utilization": 18.0,
+    "resets_at": "2026-09-25T03:00:00.199671+00:00"
+  },
+  "seven_day_sonnet": {
+    "utilization": 12.0,
+    "resets_at": "2026-09-25T03:00:00.199671+00:00"
+  },
+  "seven_day_opus": null
+}

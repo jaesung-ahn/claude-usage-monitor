@@ -1,0 +1,60 @@
+{
+  "_note": "실제 /api/oauth/usage 응답에서 이 프로젝트가 소비하는 필드만 남긴 것. 계정 식별 정보와 미사용 키는 제거했다.",
+  "_capturedAt": "2026-09-22T18:10:00+09:00",
+  "five_hour": {
+    "utilization": 55.0,
+    "resets_at": "2026-09-22T11:40:00.199652+00:00",
+    "limit_dollars": null,
+    "used_dollars": null,
+    "remaining_dollars": null,
+    "locked_reason": null
+  },
+  "seven_day": {
+    "utilization": 18.0,
+    "resets_at": "2026-09-25T03:00:00.199671+00:00",
+    "limit_dollars": null,
+    "used_dollars": null,
+    "remaining_dollars": null,
+    "locked_reason": null
+  },
+  "seven_day_sonnet": null,
+  "seven_day_opus": null,
+  "extra_usage": {
+    "is_enabled": true
+  },
+  "limits": [
+    {
+      "kind": "session",
+      "group": "session",
+      "percent": 55,
+      "severity": "normal",
+      "resets_at": "2026-09-22T11:40:00.199652+00:00",
+      "scope": null,
+      "is_active": true
+    },
+    {
+      "kind": "weekly_all",
+      "group": "weekly",
+      "percent": 18,
+      "severity": "normal",
+      "resets_at": "2026-09-25T03:00:00.199671+00:00",
+      "scope": null,
+      "is_active": false
+    },
+    {
+      "kind": "weekly_scoped",
+      "group": "weekly",
+      "percent": 23,
+      "severity": "normal",
+      "resets_at": "2026-09-25T02:59:59.199819+00:00",
+      "scope": {
+        "model": {
+          "id": null,
+          "display_name": "Fable"
+        },
+        "surface": null
+      },
+      "is_active": false
+    }
+  ]
+}
